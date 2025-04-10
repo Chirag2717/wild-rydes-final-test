@@ -260,7 +260,7 @@ Resources:
               RunOrder: 1
 
   # CloudWatch Alarms 
-  ChiragFinalPipelinealarm:
+  ChiragFinalPipeline-alarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: Alarm if CodePipeline fails
@@ -274,6 +274,21 @@ Resources:
       Dimensions:
         - Name: PipelineName
           Value: !Ref ChiragFinalPipeline
+
+
+  ChiragEcsExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 
 Outputs:
   LoadBalancerDNS:

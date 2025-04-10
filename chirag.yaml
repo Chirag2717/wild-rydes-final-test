@@ -1,26 +1,25 @@
----
 AWSTemplateFormatVersion: '2010-09-09'
-
+ 
 Parameters:
-  Githubowner:
+  GitHubOwner:
     Type: String
     Description: GitHub user or organization name
-  Githubrepo:
+  GitHubRepo:
     Type: String
     Description: GitHub repository name
-  Githubbranch:
+  GitHubBranch:
     Type: String
     Default: main
     Description: GitHub branch name
-  Githuboauthtoken:
+  GitHubOAuthToken:
     Type: String
     NoEcho: true
     Description: GitHub OAuth token for CodePipeline access
-
+ 
 Resources:
-
-  # VPC and Networking
-  ChiragFinalVpc:
+ 
+  # creation of VPC and Networking
+  chiragvpc:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: 10.0.0.0/16
@@ -28,97 +27,97 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: ChiragFinalVpc
-
-  ChiragFinalSubnet1:
+          Value: chiragvpc
+ 
+  chiragsubnet-1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref ChiragFinalVpc
+      VpcId: !Ref chiragvpc
       CidrBlock: 10.0.1.0/24
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: ChiragFinalSubnet1
-
-  ChiragFinalSubnet2:
+          Value: chiragsubnet-1
+ 
+  chiragsubnet-2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref ChiragFinalVpc
+      VpcId: !Ref chiragvpc
       CidrBlock: 10.0.2.0/24
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: ChiragFinalSubnet2
-
-  ChiragFinalIgw:
+          Value: chiragsubnet-2
+ 
+  chiragigw:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: ChiragFinalIgw
-
-  ChiragFinalAttachIgw:
+          Value: chiragigw
+ 
+  chiragattach-igw:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref ChiragFinalVpc
-      InternetGatewayId: !Ref ChiragFinalIgw
-
-  ChiragFinalRt:
+      VpcId: !Ref chiragvpc
+      InternetGatewayId: !Ref chiragigw
+ 
+  chiragrt:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ChiragFinalVpc
-
-  ChiragFinalRoute:
+      VpcId: !Ref chiragvpc
+ 
+  chiragroute:
     Type: AWS::EC2::Route
-    DependsOn: ChiragFinalAttachIgw
+    DependsOn: chiragattach-igw
     Properties:
-      RouteTableId: !Ref ChiragFinalRt
+      RouteTableId: !Ref chiragrt
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref ChiragFinalIgw
-
-  ChiragFinalRt-assoc-1:
+      GatewayId: !Ref chiragigw
+ 
+  chiragrt-assoc-1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref ChiragFinalSubnet1
-      RouteTableId: !Ref ChiragFinalRt
-
-  ChiragFinalRt-assoc-2:
+      SubnetId: !Ref chiragsubnet-1
+      RouteTableId: !Ref chiragrt
+ 
+  chiragrt-assoc-2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      SubnetId: !Ref ChiragFinalSubnet2
-      RouteTableId: !Ref ChiragFinalRt
-
+      SubnetId: !Ref chiragsubnet-2
+      RouteTableId: !Ref chiragrt
+ 
   # Security Groups
-  ChiragFinalAlbSg:
+  chiragalb-sg:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP traffic to ALB
-      VpcId: !Ref ChiragFinalVpc
+      VpcId: !Ref chiragvpc
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-
-  ChiragFinalEcsSg:
+ 
+  chiragecs-sg:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow traffic from ALB to ECS tasks
-      VpcId: !Ref ChiragFinalVpc
+      VpcId: !Ref chiragvpc
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 5000
           ToPort: 5000
-          SourceSecurityGroupId: !Ref ChiragFinalAlbSg
-
+          SourceSecurityGroupId: !Ref chiragalb-sg
+ 
   # ECS Cluster
-  ChiragFinalEcsCluster:
+  chiragecs-cluster:
     Type: AWS::ECS::Cluster
-
-  # ECS Task Definition (Docker image placeholder)
-  ChiragFinalTaskDef:
+ 
+  # ECS Task Definition (here we have the Docker image placeholder)
+  chiragtask-def:
     Type: AWS::ECS::TaskDefinition
     Properties:
       RequiresCompatibilities:
@@ -132,66 +131,66 @@ Resources:
           Image: "<Account-ID>.dkr.ecr.<region>.amazonaws.com/wildrydes:latest"
           PortMappings:
             - ContainerPort: 5000
-
+ 
   # Application Load Balancer
-  ChiragFinalAlb:
+  chiragalb:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: ChiragFinalAlb
+      Name: chiragalb
       Scheme: internet-facing
       Subnets:
-        - !Ref ChiragFinalSubnet1
-        - !Ref ChiragFinalSubnet2
+        - !Ref chiragsubnet-1
+        - !Ref chiragsubnet-2
       SecurityGroups:
-        - !Ref ChiragFinalAlbSg
-
-  ChiragFinalTargetGroup:
+        - !Ref chiragalb-sg
+ 
+  chiragtarget-group:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      VpcId: !Ref ChiragFinalVpc
+      VpcId: !Ref chiragvpc
       Protocol: HTTP
       Port: 5000
       TargetType: ip
-
-  ChiragFinalListener:
+ 
+  chiraglistener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      LoadBalancerArn: !Ref ChiragFinalAlb
+      LoadBalancerArn: !Ref chiragalb
       Port: 80
       Protocol: HTTP
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ChiragFinalTargetGroup
-
+          TargetGroupArn: !Ref chiragtarget-group
+ 
   # ECS Service
-  ChiragFinalEcsService:
+  chiragecs-service:
     Type: AWS::ECS::Service
-    DependsOn: ChiragFinalListener
+    DependsOn: chiraglistener
     Properties:
-      Cluster: !Ref ChiragFinalEcsCluster
+      Cluster: !Ref chiragecs-cluster
       DesiredCount: 2
       LaunchType: FARGATE
-      TaskDefinition: !Ref ChiragFinalTaskDef
+      TaskDefinition: !Ref chiragtask-def
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
           Subnets:
-            - !Ref ChiragFinalSubnet1
-            - !Ref ChiragFinalSubnet2
+            - !Ref chiragsubnet-1
+            - !Ref chiragsubnet-2
           SecurityGroups:
-            - !Ref ChiragFinalEcsSg
+            - !Ref chiragecs-sg
       LoadBalancers:
-        - TargetGroupArn: !Ref ChiragFinalTargetGroup
+        - TargetGroupArn: !Ref chiragtarget-group
           ContainerName: wildrydes-app
           ContainerPort: 5000
-
+ 
   # CodePipeline (CI/CD)
-  ChiragFinalArtifactBucket:
+  chiragartifact-bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: chirag-final-artifacts
-
-  ChiragFinalPipelineRole:
+      BucketName: chiragartifacts
+ 
+  chiragpipeline-role:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -203,14 +202,14 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
-
-  ChiragFinalPipeline:
+ 
+  chiragpipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      RoleArn: !GetAtt ChiragFinalPipelineRole.Arn
+      RoleArn: !GetAtt chiragpipeline-role.Arn
       ArtifactStore:
         Type: S3
-        Location: !Ref ChiragFinalArtifactBucket
+        Location: !Ref chiragartifact-bucket
       Stages:
         - Name: Source
           Actions:
@@ -221,10 +220,10 @@ Resources:
                 Provider: GitHub
                 Version: 1
               Configuration:
-                Owner: !Ref Githubowner
-                Repo: !Ref Githubrepo
-                Branch: !Ref Githubbranch
-                OAuthToken: !Ref Githuboauthtoken
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubOAuthToken
               OutputArtifacts:
                 - Name: SourceOutput
               RunOrder: 1
@@ -252,15 +251,15 @@ Resources:
                 Provider: ECS
                 Version: 1
               Configuration:
-                ClusterName: !Ref ChiragFinalEcsCluster
-                ServiceName: !Ref ChiragFinalEcsService
+                ClusterName: !Ref chiragecs-cluster
+                ServiceName: !Ref chiragecs-service
                 FileName: imagedefinitions.json
               InputArtifacts:
                 - Name: BuildOutput
               RunOrder: 1
-
-  # CloudWatch Alarms 
-  ChiragFinalPipeline-alarm:
+ 
+  # CloudWatch Alarms
+  chiragpipeline-alarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmDescription: Alarm if CodePipeline fails
@@ -273,9 +272,11 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: PipelineName
-          Value: !Ref ChiragFinalPipeline
-
+          Value: !Ref chiragpipeline
+ 
 Outputs:
   LoadBalancerDNS:
     Description: DNS name of the application load balancer
-    Value: !GetAtt ChiragFinalAlb.DNSName
+    Value: !GetAtt chiragalb.DNSName
+ 
+ 

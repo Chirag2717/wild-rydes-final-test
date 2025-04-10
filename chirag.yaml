@@ -78,13 +78,13 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref ChiragFinalIgw
 
-  ChiragFinalRt-assoc-1:
+  ChiragFinalRtAssoc1:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref ChiragFinalSubnet1
       RouteTableId: !Ref ChiragFinalRt
 
-  ChiragFinalRt-assoc-2:
+  ChiragFinalRtAssoc2:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref ChiragFinalSubnet2
